@@ -6,7 +6,9 @@ highlighting and local scopes for `.kiru` files.
 ## Neovim
 
 Requirements: Neovim 0.10+ and a C compiler on `PATH`. The plugin builds its
-parser on the first `.kiru` buffer, so there is nothing else to install.
+parser on the first `.kiru` buffer, so there is nothing else to install. A
+read-only install (for example a Nix store path) builds into the Neovim cache
+directory instead.
 
 **lazy.nvim**
 
