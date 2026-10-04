@@ -30,5 +30,4 @@ jobs:
             experimental-features = nix-command flakes
 
       - name: Run the corpus tests
-        working-directory: kiru-tree-sitter
         run: nix run nixpkgs#tree-sitter -- test
