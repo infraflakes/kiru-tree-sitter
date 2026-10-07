@@ -1,17 +1,240 @@
 ==================
-strings and comments
+comments and plain strings
 ==================
 
-# a leading comment
-txt banner = "line one
-line two\twith escape \"quoted\""; # trailing comment
+# A comment runs to the end of the line.
+let padded: txt = "  hi  ";
+let trailing: txt = "  hi\n";
+let empty: txt = "";
+let literal_at: txt = "user@host";
+
+# A string may span lines.
+let usage: txt = "usage: kiru <flag>
+
+flags:
+  check      run the checks
+  build      build the binary";
 
 ---
 
 (source_file
   (comment)
-  (text_binding
+  (binding_declaration
     (identifier)
-    (expression
-      (string)))
-  (comment))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (escape_sequence)))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string))
+  (comment)
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string)))
+
+==================
+escapes
+==================
+
+let colored: txt = "\e[@(color)m@(prefix)\e[0m @(message)\n";
+let tabbed: txt = "a\tb\rc\\d\"e\@f";
+
+---
+
+(source_file
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (escape_sequence)
+      (interpolation
+        (path
+          (identifier)))
+      (interpolation
+        (path
+          (identifier)))
+      (escape_sequence)
+      (interpolation
+        (path
+          (identifier)))
+      (escape_sequence)))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (escape_sequence)
+      (escape_sequence)
+      (escape_sequence)
+      (escape_sequence)
+      (escape_sequence))))
+
+==================
+interpolation with calls and nested strings
+==================
+
+let flag: txt = match words.len() { 0 => ""; _ => words[0]; };
+let quoted: txt = "'@(text.replace("'", "'\\''"))'";
+let nested: txt = "@(std::path::ext("/a/b/c").unwrap_or("-"))";
+let byte: txt = "@("abc".byte(1))";
+let joined: txt = "@(usage_kiru)\n\n@(usage_docs)\n\n@(usage_all)";
+let message: txt = "fleet @(healthy_count)/@(reports.len()) healthy";
+let chained: txt = "@(csv.split(comma).len())";
+
+---
+
+(source_file
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (match_expression
+      (method_call
+        (path
+          (identifier))
+        (identifier)
+        (arguments))
+      (match_arm
+        (number)
+        (string))
+      (match_arm
+        (path
+          (identifier))
+        (index_expression
+          (path
+            (identifier))
+          (number)))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (interpolation
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments
+            (string)
+            (string
+              (escape_sequence)))))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (interpolation
+        (method_call
+          (call_expression
+            (path
+              (identifier)
+              (identifier)
+              (identifier))
+            (arguments
+              (string)))
+          (identifier)
+          (arguments
+            (string))))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (interpolation
+        (method_call
+          (string)
+          (identifier)
+          (arguments
+            (number))))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (interpolation
+        (path
+          (identifier)))
+      (escape_sequence)
+      (escape_sequence)
+      (interpolation
+        (path
+          (identifier)))
+      (escape_sequence)
+      (escape_sequence)
+      (interpolation
+        (path
+          (identifier)))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (interpolation
+        (path
+          (identifier)))
+      (interpolation
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments)))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string
+      (interpolation
+        (method_call
+          (method_call
+            (path
+              (identifier))
+            (identifier)
+            (arguments
+              (path
+                (identifier))))
+          (identifier)
+          (arguments))))))

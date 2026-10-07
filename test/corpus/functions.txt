@@ -1,27 +1,22 @@
 ==================
-function declarations
+function declarations with and without a return type
 ==================
 
-fn report(txt label, txt code) -> txt {
-  return("  " + label + ": " + code + "\n");
+fn flag_of(context: std::cli::Context) -> txt {
+  let words: vec<txt> = context.args();
+  let flag: txt = match words.len() { 0 => ""; _ => words[0]; };
+  return flag;
 };
 
-fn config() -> rec {
-  return({ name = "x" });
+fn probe(service: Service, spool: txt) {
+  std::fs::write(std::path::join(spool, service.name), "@(verdict)|@(reason)");
 };
 
-fn stop() {
-  return();
-};
-
-fn end() {
-  panic;
-};
-
-fn main(rec args) {
-};
-
-fn empty() {
+fn container_cmd() -> txt {
+  match std::command("command -v docker").execute() {
+    0 => { return "docker"; };
+    _ => { return "podman"; };
+  };
 };
 
 ---
@@ -31,59 +26,468 @@ fn empty() {
     (identifier)
     (parameter_list
       (parameter
-        (identifier))
-      (parameter
-        (identifier)))
-    (block
-      (return_statement
-        (expression
-          (binary_expression
-            (expression
-              (binary_expression
-                (expression
-                  (binary_expression
-                    (expression
-                      (binary_expression
-                        (expression
-                          (string))
-                        (expression
-                          (path
-                            (identifier)))))
-                    (expression
-                      (string))))
-                (expression
-                  (path
-                    (identifier)))))
-            (expression
-              (string)))))))
-  (function_declaration
-    (identifier)
-    (parameter_list)
-    (block
-      (return_statement
-        (expression
-          (record_literal
-            (record_field
+        (identifier)
+        (type
+          (named_type
+            (path
               (identifier)
-              (expression
-                (string))))))))
-  (function_declaration
-    (identifier)
-    (parameter_list)
+              (identifier)
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
     (block
-      (return_statement)))
-  (function_declaration
-    (identifier)
-    (parameter_list)
-    (block
-      (panic_statement)))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments)))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (match_expression
+          (method_call
+            (path
+              (identifier))
+            (identifier)
+            (arguments))
+          (match_arm
+            (number)
+            (string))
+          (match_arm
+            (path
+              (identifier))
+            (index_expression
+              (path
+                (identifier))
+              (number)))))
+      (return_statement
+        (path
+          (identifier)))))
   (function_declaration
     (identifier)
     (parameter_list
       (parameter
-        (identifier)))
-    (block))
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier)
+            (identifier))
+          (arguments
+            (call_expression
+              (path
+                (identifier)
+                (identifier)
+                (identifier))
+              (arguments
+                (path
+                  (identifier))
+                (field_access
+                  (path
+                    (identifier))
+                  (identifier))))
+            (string
+              (interpolation
+                (path
+                  (identifier)))
+              (interpolation
+                (path
+                  (identifier)))))))))
   (function_declaration
     (identifier)
     (parameter_list)
-    (block)))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (expression_statement
+        (match_expression
+          (method_call
+            (call_expression
+              (path
+                (identifier)
+                (identifier))
+              (arguments
+                (string)))
+            (identifier)
+            (arguments))
+          (match_arm
+            (number)
+            (block
+              (return_statement
+                (string))))
+          (match_arm
+            (path
+              (identifier))
+            (block
+              (return_statement
+                (string)))))))))
+
+==================
+generic functions and a function passed as a value
+==================
+
+fn count_where<T>(items: vec<T>, keep: fn(T) -> bool) -> int {
+  let total: int = 0;
+  for item in items {
+    match keep(item) {
+      true => { total = total + 1; };
+      _ => {};
+    };
+  };
+  return total;
+};
+
+fn map<T, U>(self: vec<T>, apply: fn(T) -> U) -> vec<U> {
+  let out: vec<U> = [];
+  let index: int = 0;
+  for item in self {
+    out[index] = apply(item);
+    index = index + 1;
+  };
+  return out;
+};
+
+fn healthy(health: Health) -> bool {
+  return match health { Health.down(_) => false; _ => true; };
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (type_parameters
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (function_type
+            (type
+              (named_type
+                (path
+                  (identifier))))
+            (type
+              (named_type
+                (path
+                  (identifier))))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (number))
+      (for_statement
+        (identifier)
+        (path
+          (identifier))
+        (block
+          (expression_statement
+            (match_expression
+              (call_expression
+                (path
+                  (identifier))
+                (arguments
+                  (path
+                    (identifier))))
+              (match_arm
+                (boolean)
+                (block
+                  (assignment_statement
+                    (path
+                      (identifier))
+                    (binary_expression
+                      (path
+                        (identifier))
+                      (number)))))
+              (match_arm
+                (path
+                  (identifier))
+                (block))))))
+      (return_statement
+        (path
+          (identifier)))))
+  (function_declaration
+    (identifier)
+    (type_parameters
+      (identifier)
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (function_type
+            (type
+              (named_type
+                (path
+                  (identifier))))
+            (type
+              (named_type
+                (path
+                  (identifier))))))))
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (vec_literal))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (number))
+      (for_statement
+        (identifier)
+        (path
+          (identifier))
+        (block
+          (assignment_statement
+            (index_expression
+              (path
+                (identifier))
+              (path
+                (identifier)))
+            (call_expression
+              (path
+                (identifier))
+              (arguments
+                (path
+                  (identifier)))))
+          (assignment_statement
+            (path
+              (identifier))
+            (binary_expression
+              (path
+                (identifier))
+              (number)))))
+      (return_statement
+        (path
+          (identifier)))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (return_statement
+        (match_expression
+          (path
+            (identifier))
+          (match_arm
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (path
+                  (identifier))))
+            (boolean))
+          (match_arm
+            (path
+              (identifier))
+            (boolean)))))))
+
+==================
+closures as call arguments
+==================
+
+fn main() -> int {
+  let healthy_count: int = count_where(reports, fn(report: Report) -> bool {
+    return healthy(report.health);
+  });
+  return healthy_count;
+};
+
+fn sort(items: vec<txt>) -> vec<txt> {
+  return items.sort_by(fn(a: txt, b: txt) -> bool {
+    return a < b;
+  });
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (call_expression
+          (path
+            (identifier))
+          (arguments
+            (path
+              (identifier))
+            (closure
+              (parameter_list
+                (parameter
+                  (identifier)
+                  (type
+                    (named_type
+                      (path
+                        (identifier))))))
+              (type
+                (named_type
+                  (path
+                    (identifier))))
+              (block
+                (return_statement
+                  (call_expression
+                    (path
+                      (identifier))
+                    (arguments
+                      (field_access
+                        (path
+                          (identifier))
+                        (identifier))))))))))
+      (return_statement
+        (path
+          (identifier)))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))))
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (block
+      (return_statement
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments
+            (closure
+              (parameter_list
+                (parameter
+                  (identifier)
+                  (type
+                    (named_type
+                      (path
+                        (identifier)))))
+                (parameter
+                  (identifier)
+                  (type
+                    (named_type
+                      (path
+                        (identifier))))))
+              (type
+                (named_type
+                  (path
+                    (identifier))))
+              (block
+                (return_statement
+                  (binary_expression
+                    (path
+                      (identifier))
+                    (path
+                      (identifier))))))))))))

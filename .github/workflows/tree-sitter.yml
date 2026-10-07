@@ -36,3 +36,9 @@ jobs:
 
       - name: Run the corpus tests
         run: nix run nixpkgs#tree-sitter -- test
+
+      - name: Check out the kiru language
+        uses: actions/checkout@v6
+        with:
+          repository: infraflakes/kiru
+          path: kiru

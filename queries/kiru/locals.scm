@@ -2,28 +2,29 @@
 ;
 ; Names are read top-down and a local shadows an outer binding. A function is
 ; a scope, so its parameters are visible throughout its body. A block is a
-; scope for the `txt` and `rec` bindings it declares. Each `case` arm is its
-; own scope that still sees the enclosing body. A `defer` body is its own
-; scope.
+; scope for the bindings it declares. A closure is a scope that captures the
+; enclosing locals. A `match` arm and a `for` body are scopes of their own.
 
 ; Scopes.
 (function_declaration) @scope
+(closure) @scope
 (block) @scope
-(case_clause) @scope
-(defer_statement) @scope
+(match_arm) @scope
+(for_statement) @scope
 
 ; Definitions.
 (parameter
   name: (identifier) @definition.parameter)
 
-(text_binding
+(binding_declaration
   name: (identifier) @definition.var)
 
-(record_binding
-  name: (identifier) @definition.var)
+(for_statement
+  item: (identifier) @definition.var)
 
 (assignment_statement
-  name: (identifier) @definition.var)
+  target: (path
+    name: (identifier) @definition.var))
 
 ; References. Path segments resolve against the definitions above.
 (identifier) @reference

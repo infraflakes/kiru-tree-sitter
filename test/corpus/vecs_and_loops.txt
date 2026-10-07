@@ -1,0 +1,460 @@
+==================
+vec literals and index assignment
+==================
+
+fn prepend<T>(self: vec<T>, item: T) -> vec<T> {
+  let out: vec<T> = [];
+  out[0] = item;
+  let index: int = 0;
+  for element in self {
+    index = index + 1;
+    out[index] = element;
+  };
+  return out;
+};
+
+let xs: vec<txt> = ["a", "b", "c"];
+
+let nested: vec<Service> = [
+  { name = "api", dir = "/tmp", probe = "echo ready" },
+  { name = "worker", dir = "/tmp", probe = "echo slow" },
+  { name = "cache", dir = "/tmp", probe = "echo no route to cache >&2; exit 1" },
+];
+
+let empty: vec<txt> = [];
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (type_parameters
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (vec_literal))
+      (assignment_statement
+        (index_expression
+          (path
+            (identifier))
+          (number))
+        (path
+          (identifier)))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (number))
+      (for_statement
+        (identifier)
+        (path
+          (identifier))
+        (block
+          (assignment_statement
+            (path
+              (identifier))
+            (binary_expression
+              (path
+                (identifier))
+              (number)))
+          (assignment_statement
+            (index_expression
+              (path
+                (identifier))
+              (path
+                (identifier)))
+            (path
+              (identifier)))))
+      (return_statement
+        (path
+          (identifier)))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (vec_literal
+      (string)
+      (string)
+      (string)))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (vec_literal
+      (map_literal
+        (map_field
+          (identifier)
+          (string))
+        (map_field
+          (identifier)
+          (string))
+        (map_field
+          (identifier)
+          (string)))
+      (map_literal
+        (map_field
+          (identifier)
+          (string))
+        (map_field
+          (identifier)
+          (string))
+        (map_field
+          (identifier)
+          (string)))
+      (map_literal
+        (map_field
+          (identifier)
+          (string))
+        (map_field
+          (identifier)
+          (string))
+        (map_field
+          (identifier)
+          (string)))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (vec_literal)))
+
+==================
+for over a vec and a forever loop with break
+==================
+
+fn reverse<T>(self: vec<T>) -> vec<T> {
+  let result: vec<T> = [];
+  let at: int = 0;
+  let index: int = self.len();
+  for {
+    match index > 0 { false => { break; }; true => {}; };
+    index = index - 1;
+    result[at] = self[index];
+    at = at + 1;
+  };
+  return result;
+};
+
+fn count_where<T>(items: vec<T>, keep: fn(T) -> bool) -> int {
+  let total: int = 0;
+  for item in items {
+    match keep(item) {
+      true => { total = total + 1; };
+      _ => {};
+    };
+  };
+  return total;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (type_parameters
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))))
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (vec_literal))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (number))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments)))
+      (for_statement
+        (block
+          (expression_statement
+            (match_expression
+              (binary_expression
+                (path
+                  (identifier))
+                (number))
+              (match_arm
+                (boolean)
+                (block
+                  (break_statement)))
+              (match_arm
+                (boolean)
+                (block))))
+          (assignment_statement
+            (path
+              (identifier))
+            (binary_expression
+              (path
+                (identifier))
+              (number)))
+          (assignment_statement
+            (index_expression
+              (path
+                (identifier))
+              (path
+                (identifier)))
+            (index_expression
+              (path
+                (identifier))
+              (path
+                (identifier))))
+          (assignment_statement
+            (path
+              (identifier))
+            (binary_expression
+              (path
+                (identifier))
+              (number)))))
+      (return_statement
+        (path
+          (identifier)))))
+  (function_declaration
+    (identifier)
+    (type_parameters
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (function_type
+            (type
+              (named_type
+                (path
+                  (identifier))))
+            (type
+              (named_type
+                (path
+                  (identifier))))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (number))
+      (for_statement
+        (identifier)
+        (path
+          (identifier))
+        (block
+          (expression_statement
+            (match_expression
+              (call_expression
+                (path
+                  (identifier))
+                (arguments
+                  (path
+                    (identifier))))
+              (match_arm
+                (boolean)
+                (block
+                  (assignment_statement
+                    (path
+                      (identifier))
+                    (binary_expression
+                      (path
+                        (identifier))
+                      (number)))))
+              (match_arm
+                (path
+                  (identifier))
+                (block))))))
+      (return_statement
+        (path
+          (identifier))))))
+
+==================
+chained vec methods on literals
+==================
+
+fn checks() {
+  std::join(["a", "b"].append("c"), "-");
+  ["a", "b", "c"].reverse();
+  ["a", "b", "c"].last();
+  [].concat(["a"]);
+  std::vec::sort(["c", "a", "b"]);
+  self[0];
+  source[right];
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier))
+          (arguments
+            (method_call
+              (vec_literal
+                (string)
+                (string))
+              (identifier)
+              (arguments
+                (string)))
+            (string))))
+      (expression_statement
+        (method_call
+          (vec_literal
+            (string)
+            (string)
+            (string))
+          (identifier)
+          (arguments)))
+      (expression_statement
+        (method_call
+          (vec_literal
+            (string)
+            (string)
+            (string))
+          (identifier)
+          (arguments)))
+      (expression_statement
+        (method_call
+          (vec_literal)
+          (identifier)
+          (arguments
+            (vec_literal
+              (string)))))
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier)
+            (identifier))
+          (arguments
+            (vec_literal
+              (string)
+              (string)
+              (string)))))
+      (expression_statement
+        (index_expression
+          (path
+            (identifier))
+          (number)))
+      (expression_statement
+        (index_expression
+          (path
+            (identifier))
+          (path
+            (identifier)))))))

@@ -1,82 +1,431 @@
 ==================
-paths, chains, and expressions
+operator precedence and grouping
 ==================
 
-txt value = ::root::value + other::name;
-
-fn run(rec project, txt message) -> txt {
-  command({ Dir = project.dir, Env = "KIRU_MESSAGE=" + message }, "echo " + message);
-  return(::helper() + project.name);
+fn classify(code: int) -> bool {
+  let head: bool = code == 32 || code == 9 || code == 10;
+  let tail: bool = code == 13 || code == 11 || code == 12;
+  let mixed: bool = head && !tail;
+  let scaled: int = value * 10 + (digit - 48);
+  let compared: bool = index + 1 < count && right >= end;
+  return head || tail;
 };
 
 ---
 
 (source_file
-  (text_binding
-    (identifier)
-    (expression
-      (binary_expression
-        (expression
-          (path
-            (root_namespace)
-            (namespace
-              (identifier))
-            (identifier)))
-        (expression
-          (path
-            (namespace
-              (identifier))
-            (identifier))))))
   (function_declaration
     (identifier)
     (parameter_list
       (parameter
-        (identifier))
-      (parameter
-        (identifier)))
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
     (block
-      (expression_statement
-        (expression
-          (call_expression
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (path
+                (identifier))
+              (number))
+            (binary_expression
+              (path
+                (identifier))
+              (number)))
+          (binary_expression
             (path
               (identifier))
-            (argument_list
-              (expression
-                (record_literal
-                  (record_field
-                    (identifier)
-                    (expression
-                      (field_access
-                        (path
-                          (identifier))
-                        (identifier))))
-                  (record_field
-                    (identifier)
-                    (expression
-                      (binary_expression
-                        (expression
-                          (string))
-                        (expression
-                          (path
-                            (identifier))))))))
-              (expression
-                (binary_expression
-                  (expression
-                    (string))
-                  (expression
-                    (path
-                      (identifier)))))))))
-      (return_statement
-        (expression
+            (number))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (binary_expression
           (binary_expression
-            (expression
-              (call_expression
+            (binary_expression
+              (path
+                (identifier))
+              (number))
+            (binary_expression
+              (path
+                (identifier))
+              (number)))
+          (binary_expression
+            (path
+              (identifier))
+            (number))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (binary_expression
+          (path
+            (identifier))
+          (unary_expression
+            (path
+              (identifier)))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (binary_expression
+          (binary_expression
+            (path
+              (identifier))
+            (number))
+          (binary_expression
+            (path
+              (identifier))
+            (number))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (binary_expression
+          (binary_expression
+            (binary_expression
+              (path
+                (identifier))
+              (number))
+            (path
+              (identifier)))
+          (binary_expression
+            (path
+              (identifier))
+            (path
+              (identifier)))))
+      (return_statement
+        (binary_expression
+          (path
+            (identifier))
+          (path
+            (identifier)))))))
+
+==================
+unary operators, remainder, and division
+==================
+
+fn normalize(raw: int) -> int {
+  let signal: int = raw % 128;
+  let code: int = raw / 256;
+  let negated: int = -value;
+  let inverted: bool = !matched;
+  return 128 + signal;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (binary_expression
+          (path
+            (identifier))
+          (number)))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (binary_expression
+          (path
+            (identifier))
+          (number)))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (unary_expression
+          (path
+            (identifier))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (unary_expression
+          (path
+            (identifier))))
+      (return_statement
+        (binary_expression
+          (number)
+          (path
+            (identifier)))))))
+
+==================
+path calls, method calls, chaining, fields, and indexes
+==================
+
+fn build() -> int {
+  let line: txt = std::join(context.path, " ");
+  std::eprint("no action for `@(line)`");
+  let first: txt = text.slice(index, count);
+  let flag: txt = match words.len() { 0 => ""; _ => words[0]; };
+  std::command("kiru").about("build the project").action(run_usage);
+  let sorted: vec<txt> = std::vec::sort(items);
+  return root.parse(words);
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (call_expression
+          (path
+            (identifier)
+            (identifier))
+          (arguments
+            (field_access
+              (path
+                (identifier))
+              (identifier))
+            (string))))
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier))
+          (arguments
+            (string
+              (interpolation
                 (path
-                  (root_namespace)
-                  (identifier))
-                (argument_list)))
-            (expression
-              (field_access
-                (path
-                  (identifier))
-                (identifier)))))))))
+                  (identifier)))))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments
+            (path
+              (identifier))
+            (path
+              (identifier)))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (match_expression
+          (method_call
+            (path
+              (identifier))
+            (identifier)
+            (arguments))
+          (match_arm
+            (number)
+            (string))
+          (match_arm
+            (path
+              (identifier))
+            (index_expression
+              (path
+                (identifier))
+              (number)))))
+      (expression_statement
+        (method_call
+          (method_call
+            (call_expression
+              (path
+                (identifier)
+                (identifier))
+              (arguments
+                (string)))
+            (identifier)
+            (arguments
+              (string)))
+          (identifier)
+          (arguments
+            (path
+              (identifier)))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (call_expression
+          (path
+            (identifier)
+            (identifier)
+            (identifier))
+          (arguments
+            (path
+              (identifier)))))
+      (return_statement
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments
+            (path
+              (identifier))))))))
+
+==================
+a rooted path call and a qualified variant
+==================
+
+fn root() {
+  ::std::print("x");
+  let some: std::Option<int> = std::Option.some(7);
+  let none: std::Option<int> = std::Option.none;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier))
+          (arguments
+            (string))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (method_call
+          (path
+            (identifier)
+            (identifier))
+          (identifier)
+          (arguments
+            (number))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (field_access
+          (path
+            (identifier)
+            (identifier))
+          (identifier))))))
+
+==================
+grouping steers precedence
+==================
+
+let value: int = (a + b) * c;
+
+let nested: int = a * (b + (c - d));
+
+---
+
+(source_file
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (binary_expression
+      (binary_expression
+        (path
+          (identifier))
+        (path
+          (identifier)))
+      (path
+        (identifier))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (binary_expression
+      (path
+        (identifier))
+      (binary_expression
+        (path
+          (identifier))
+        (binary_expression
+          (path
+            (identifier))
+          (path
+            (identifier)))))))

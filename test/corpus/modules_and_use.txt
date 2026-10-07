@@ -1,0 +1,165 @@
+==================
+imports, uses, and inline modules
+==================
+
+import "entry.kiru";
+import ".kiru/helpers.kiru";
+import ".kiru/cli.kiru";
+
+use kiru;
+use std;
+use std::cli;
+use std::text;
+use std::vec;
+
+---
+
+(source_file
+  (import_declaration
+    (string))
+  (import_declaration
+    (string))
+  (import_declaration
+    (string))
+  (use_declaration
+    (path
+      (identifier)))
+  (use_declaration
+    (path
+      (identifier)))
+  (use_declaration
+    (path
+      (identifier)
+      (identifier)))
+  (use_declaration
+    (path
+      (identifier)
+      (identifier)))
+  (use_declaration
+    (path
+      (identifier)
+      (identifier))))
+
+==================
+a module that reopens a namespace and holds a use
+==================
+
+mod std {
+  use std::text;
+  use std::vec;
+
+  pub fn print(message: txt) {
+    std::io::write(1, "@(message)\n");
+  };
+
+  pub let greeting: txt = "hello";
+};
+
+mod std::text {
+  pub type txt;
+};
+
+mod std::vec {
+  pub type vec<T>;
+};
+
+---
+
+(source_file
+  (module_declaration
+    (path
+      (identifier))
+    (use_declaration
+      (path
+        (identifier)
+        (identifier)))
+    (use_declaration
+      (path
+        (identifier)
+        (identifier)))
+    (function_declaration
+      (identifier)
+      (parameter_list
+        (parameter
+          (identifier)
+          (type
+            (named_type
+              (path
+                (identifier))))))
+      (block
+        (expression_statement
+          (call_expression
+            (path
+              (identifier)
+              (identifier)
+              (identifier))
+            (arguments
+              (number)
+              (string
+                (interpolation
+                  (path
+                    (identifier)))
+                (escape_sequence)))))))
+    (binding_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier))))
+      (string)))
+  (module_declaration
+    (path
+      (identifier)
+      (identifier))
+    (type_declaration
+      (identifier)))
+  (module_declaration
+    (path
+      (identifier)
+      (identifier))
+    (type_declaration
+      (identifier)
+      (type_parameters
+        (identifier)))))
+
+==================
+a single-declaration use and a module with a rec
+==================
+
+use std::option::Option;
+
+mod kiru {
+  fn build_kiru(project: Project) {
+    run(project, "nix build .#default");
+  };
+};
+
+---
+
+(source_file
+  (use_declaration
+    (path
+      (identifier)
+      (identifier)
+      (identifier)))
+  (module_declaration
+    (path
+      (identifier))
+    (function_declaration
+      (identifier)
+      (parameter_list
+        (parameter
+          (identifier)
+          (type
+            (named_type
+              (path
+                (identifier))))))
+      (block
+        (expression_statement
+          (call_expression
+            (path
+              (identifier))
+            (arguments
+              (path
+                (identifier))
+              (string))))))))

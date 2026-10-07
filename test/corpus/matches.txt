@@ -1,0 +1,575 @@
+==================
+a match in expression position with literal and variant patterns
+==================
+
+fn health_of(name: txt, spool: txt) -> Health {
+  let raw: txt = std::fs::read(std::path::join(spool, name));
+  let parts: vec<txt> = raw.split("|");
+  let health: Health = match parts[0] {
+    "ok" => Health.ok(parts[1]);
+    "slow" => Health.slow(parts[1]);
+    _ => Health.down(parts[1]);
+  };
+  return health;
+};
+
+fn unwrap_or<T>(self: Option<T>, fallback: T) -> T {
+  let inner: T = match self {
+    Option.some(value) => value;
+    Option.none => fallback;
+  };
+  return inner;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (call_expression
+          (path
+            (identifier)
+            (identifier)
+            (identifier))
+          (arguments
+            (call_expression
+              (path
+                (identifier)
+                (identifier)
+                (identifier))
+              (arguments
+                (path
+                  (identifier))
+                (path
+                  (identifier)))))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments
+            (string))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (match_expression
+          (index_expression
+            (path
+              (identifier))
+            (number))
+          (match_arm
+            (string)
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (index_expression
+                  (path
+                    (identifier))
+                  (number)))))
+          (match_arm
+            (string)
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (index_expression
+                  (path
+                    (identifier))
+                  (number)))))
+          (match_arm
+            (path
+              (identifier))
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (index_expression
+                  (path
+                    (identifier))
+                  (number)))))))
+      (return_statement
+        (path
+          (identifier)))))
+  (function_declaration
+    (identifier)
+    (type_parameters
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (match_expression
+          (path
+            (identifier))
+          (match_arm
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (path
+                  (identifier))))
+            (path
+              (identifier)))
+          (match_arm
+            (field_access
+              (path
+                (identifier))
+              (identifier))
+            (path
+              (identifier)))))
+      (return_statement
+        (path
+          (identifier))))))
+
+==================
+a match in statement position with block arms
+==================
+
+fn line(self: Health) -> txt {
+  let text: txt = match self {
+    Health.ok(why) => "ok (@(why))";
+    Health.slow(why) => "slow (@(why))";
+    Health.down(why) => "down: @(why)";
+  };
+  return text;
+};
+
+fn signal_number(name: txt) -> int {
+  let number: int = 0;
+  match name {
+    "TERM" => { number = 15; };
+    "KILL" => { number = 9; };
+    _ => { std::eprint("unknown signal `@(name)`"); };
+  };
+  return number;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (match_expression
+          (path
+            (identifier))
+          (match_arm
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (path
+                  (identifier))))
+            (string
+              (interpolation
+                (path
+                  (identifier)))))
+          (match_arm
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (path
+                  (identifier))))
+            (string
+              (interpolation
+                (path
+                  (identifier)))))
+          (match_arm
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (path
+                  (identifier))))
+            (string
+              (interpolation
+                (path
+                  (identifier)))))))
+      (return_statement
+        (path
+          (identifier)))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (number))
+      (expression_statement
+        (match_expression
+          (path
+            (identifier))
+          (match_arm
+            (string)
+            (block
+              (assignment_statement
+                (path
+                  (identifier))
+                (number))))
+          (match_arm
+            (string)
+            (block
+              (assignment_statement
+                (path
+                  (identifier))
+                (number))))
+          (match_arm
+            (path
+              (identifier))
+            (block
+              (expression_statement
+                (call_expression
+                  (path
+                    (identifier)
+                    (identifier))
+                  (arguments
+                    (string
+                      (interpolation
+                        (path
+                          (identifier)))))))))))
+      (return_statement
+        (path
+          (identifier))))))
+
+==================
+a wildcard binding, a default arm, and a nested match
+==================
+
+fn healthy(health: Health) -> bool {
+  let good: bool = match health {
+    Health.down(_) => false;
+    _ => true;
+  };
+  return good;
+};
+
+fn probe(service: Service, spool: txt) {
+  let verdict: txt = match run.code {
+    0 => match run.out.contains("slow") {
+      true => "slow";
+      _ => "ok";
+    };
+    _ => "down";
+  };
+  std::fs::write(spool, verdict);
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (match_expression
+          (path
+            (identifier))
+          (match_arm
+            (method_call
+              (path
+                (identifier))
+              (identifier)
+              (arguments
+                (path
+                  (identifier))))
+            (boolean))
+          (match_arm
+            (path
+              (identifier))
+            (boolean))))
+      (return_statement
+        (path
+          (identifier)))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (match_expression
+          (field_access
+            (path
+              (identifier))
+            (identifier))
+          (match_arm
+            (number)
+            (match_expression
+              (method_call
+                (field_access
+                  (path
+                    (identifier))
+                  (identifier))
+                (identifier)
+                (arguments
+                  (string)))
+              (match_arm
+                (boolean)
+                (string))
+              (match_arm
+                (path
+                  (identifier))
+                (string))))
+          (match_arm
+            (path
+              (identifier))
+            (string))))
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier)
+            (identifier))
+          (arguments
+            (path
+              (identifier))
+            (path
+              (identifier))))))))
+
+==================
+a match as a call argument and a boolean match
+==================
+
+pub fn emit(color: txt, prefix: txt, file_descriptor: int, message: txt) {
+  std::io::write(file_descriptor, match std::io::is_terminal(file_descriptor) {
+    true => "\e[@(color)m@(prefix)\e[0m @(message)\n";
+    _ => "@(prefix) @(message)\n";
+  });
+};
+
+fn to_int(negative: bool) -> int {
+  return match negative { true => 1; false => 0; };
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier)
+            (identifier))
+          (arguments
+            (path
+              (identifier))
+            (match_expression
+              (call_expression
+                (path
+                  (identifier)
+                  (identifier)
+                  (identifier))
+                (arguments
+                  (path
+                    (identifier))))
+              (match_arm
+                (boolean)
+                (string
+                  (escape_sequence)
+                  (interpolation
+                    (path
+                      (identifier)))
+                  (interpolation
+                    (path
+                      (identifier)))
+                  (escape_sequence)
+                  (interpolation
+                    (path
+                      (identifier)))
+                  (escape_sequence)))
+              (match_arm
+                (path
+                  (identifier))
+                (string
+                  (interpolation
+                    (path
+                      (identifier)))
+                  (interpolation
+                    (path
+                      (identifier)))
+                  (escape_sequence)))))))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (return_statement
+        (match_expression
+          (path
+            (identifier))
+          (match_arm
+            (boolean)
+            (number))
+          (match_arm
+            (boolean)
+            (number)))))))

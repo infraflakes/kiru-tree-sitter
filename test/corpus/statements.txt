@@ -1,22 +1,17 @@
 ==================
-statements
+bindings, assignments, and returns
 ==================
 
-fn work(rec project) {
-  txt log = "";
-
-  rec local = {
-    name = "step",
+pub fn join(parts: vec<txt>, separator: txt) -> txt {
+  let result: txt = "";
+  let first: bool = true;
+  for part in parts {
+    match first {
+      true => { result = part; first = false; };
+      _ => { result = "@(result)@(separator)@(part)"; };
+    };
   };
-
-  log = log + "x";
-  async work();
-  wait;
-  std::command({ Env = "KIRU_MESSAGE=" + log }, "echo hi");
-  defer {
-    std::command({ Stream = "null" }, "rm -rf " + log);
-  };
-  panic;
+  return result;
 };
 
 ---
@@ -26,78 +21,407 @@ fn work(rec project) {
     (identifier)
     (parameter_list
       (parameter
-        (identifier)))
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
     (block
-      (text_binding
+      (binding_declaration
         (identifier)
-        (expression
-          (string)))
-      (record_binding
-        (identifier)
-        (expression
-          (record_literal
-            (record_field
-              (identifier)
-              (expression
-                (string))))))
-      (assignment_statement
-        (identifier)
-        (expression
-          (binary_expression
-            (expression
-              (path
-                (identifier)))
-            (expression
-              (string)))))
-      (async_statement
-        (expression
-          (call_expression
+        (type
+          (named_type
             (path
-              (identifier))
-            (argument_list))))
-      (wait_statement)
-      (expression_statement
-        (expression
-          (call_expression
+              (identifier))))
+        (string))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
             (path
-              (namespace
-                (identifier))
-              (identifier))
-            (argument_list
-              (expression
-                (record_literal
-                  (record_field
-                    (identifier)
-                    (expression
-                      (binary_expression
-                        (expression
-                          (string))
-                        (expression
-                          (path
-                            (identifier))))))))
-              (expression
-                (string))))))
-      (defer_statement
+              (identifier))))
+        (boolean))
+      (for_statement
+        (identifier)
+        (path
+          (identifier))
         (block
           (expression_statement
-            (expression
-              (call_expression
+            (match_expression
+              (path
+                (identifier))
+              (match_arm
+                (boolean)
+                (block
+                  (assignment_statement
+                    (path
+                      (identifier))
+                    (path
+                      (identifier)))
+                  (assignment_statement
+                    (path
+                      (identifier))
+                    (boolean))))
+              (match_arm
                 (path
-                  (namespace
-                    (identifier))
                   (identifier))
-                (argument_list
-                  (expression
-                    (record_literal
-                      (record_field
-                        (identifier)
-                        (expression
-                          (string)))))
-                  (expression
-                    (binary_expression
-                      (expression
-                        (string))
-                      (expression
+                (block
+                  (assignment_statement
+                    (path
+                      (identifier))
+                    (string
+                      (interpolation
+                        (path
+                          (identifier)))
+                      (interpolation
+                        (path
+                          (identifier)))
+                      (interpolation
                         (path
                           (identifier)))))))))))
-      (panic_statement))))
+      (return_statement
+        (path
+          (identifier))))))
+
+==================
+field and index assignments
+==================
+
+fn option(name: txt) -> Flag {
+  let flag: Flag = switch(name);
+  flag.takes = true;
+  let copy: Command = self;
+  copy.about = text;
+  copy.flags = copy.flags.append(flag);
+  let out: vec<txt> = [];
+  out[out.len()] = item;
+  return flag;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (call_expression
+          (path
+            (identifier))
+          (arguments
+            (path
+              (identifier)))))
+      (assignment_statement
+        (field_access
+          (path
+            (identifier))
+          (identifier))
+        (boolean))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (path
+          (identifier)))
+      (assignment_statement
+        (field_access
+          (path
+            (identifier))
+          (identifier))
+        (path
+          (identifier)))
+      (assignment_statement
+        (field_access
+          (path
+            (identifier))
+          (identifier))
+        (method_call
+          (field_access
+            (path
+              (identifier))
+            (identifier))
+          (identifier)
+          (arguments
+            (path
+              (identifier)))))
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (vec_literal))
+      (assignment_statement
+        (index_expression
+          (path
+            (identifier))
+          (method_call
+            (path
+              (identifier))
+            (identifier)
+            (arguments)))
+        (path
+          (identifier)))
+      (return_statement
+        (path
+          (identifier))))))
+
+==================
+async, wait, panic, and break
+==================
+
+fn all_command(kiru: Project, docs: Project, flag: txt) {
+  match flag {
+    "build" => {
+      std::log("Building site");
+      async build_docs(docs);
+      std::log("Building backend");
+      async build_kiru(kiru);
+      wait;
+    };
+    _ => { std::eprint(usage_all); };
+  };
+};
+
+pub fn eprint(message: txt) {
+  emit("31", "ERROR:", 2, message);
+  panic;
+};
+
+fn first() -> int {
+  for {
+    match index < count { false => { break; }; true => {}; };
+    break;
+  };
+  return 0;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (block
+      (expression_statement
+        (match_expression
+          (path
+            (identifier))
+          (match_arm
+            (string)
+            (block
+              (expression_statement
+                (call_expression
+                  (path
+                    (identifier)
+                    (identifier))
+                  (arguments
+                    (string))))
+              (async_statement
+                (call_expression
+                  (path
+                    (identifier))
+                  (arguments
+                    (path
+                      (identifier)))))
+              (expression_statement
+                (call_expression
+                  (path
+                    (identifier)
+                    (identifier))
+                  (arguments
+                    (string))))
+              (async_statement
+                (call_expression
+                  (path
+                    (identifier))
+                  (arguments
+                    (path
+                      (identifier)))))
+              (wait_statement)))
+          (match_arm
+            (path
+              (identifier))
+            (block
+              (expression_statement
+                (call_expression
+                  (path
+                    (identifier)
+                    (identifier))
+                  (arguments
+                    (path
+                      (identifier)))))))))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier))
+          (arguments
+            (string)
+            (string)
+            (number)
+            (path
+              (identifier)))))
+      (panic_statement)))
+  (function_declaration
+    (identifier)
+    (parameter_list)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (for_statement
+        (block
+          (expression_statement
+            (match_expression
+              (binary_expression
+                (path
+                  (identifier))
+                (path
+                  (identifier)))
+              (match_arm
+                (boolean)
+                (block
+                  (break_statement)))
+              (match_arm
+                (boolean)
+                (block))))
+          (break_statement)))
+      (return_statement
+        (number)))))
+
+==================
+a valueless return and an expression statement
+==================
+
+fn take(value: ::root::Value) {
+  std::print(value);
+  return;
+};
+
+fn run_kiru(context: std::cli::Context) -> int {
+  kiru::kiru_command(kiru, flag_of(context));
+  return 0;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)
+              (identifier))))))
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier))
+          (arguments
+            (path
+              (identifier)))))
+      (return_statement)))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)
+              (identifier)
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier))
+          (arguments
+            (path
+              (identifier))
+            (call_expression
+              (path
+                (identifier))
+              (arguments
+                (path
+                  (identifier)))))))
+      (return_statement
+        (number)))))

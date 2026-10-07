@@ -1,60 +1,98 @@
 /**
  * Tree-sitter grammar for the kiru language.
  *
- * The grammar follows the accepted syntax in the language spec and the
- * appendix grammar. A file opens with an optional `module` path, then imports,
- * then declarations. Every declaration and every statement ends with `;`,
- * including a braced block used as a statement. There are no numeric literals:
- * text is the only scalar, and a string may span lines.
+ * The grammar follows the accepted syntax in the appendix grammar
+ * (`docs/.../appendix/grammar.md`) and the recursive descent parser in
+ * `src/syntax/parser/`. Every declaration and every statement ends with `;`,
+ * including a braced block used as a statement.
  *
- * The rule shapes mirror the reference grammar:
+ * A file is a sequence of items in any order:
  *
- *   file        := module? import* declaration*
- *   declaration := function | text | record
- *   function    := "fn" ident "(" params? ")" ("->" kind)? block ";"
- *   statement   := text | record | assignment | expression ";"
- *                | "return" "(" expression? ")" ";"
- *                | "panic" ";"
- *                | "async" expression ";"
- *                | "wait" ";"
- *                | "switch" "(" expression ")" switch ";"
- *                | "defer" block ";"
- *   expression  := term ("+" term)*
- *   term        := primary ("." ident)*
- *   primary     := string | fields | path arguments? | path
+ *   item        := declaration | module | import | use
+ *   module      := "mod" path "{" (declaration | use)* "}" ";"
+ *   import      := "import" string ";"
+ *   use         := "use" path ";"
+ *   declaration := "pub"? (function | binding | type | rec | enum)
+ *   function    := "fn" ident type_params? "(" params? ")" ("->" type)? block ";"
+ *   binding     := "let" ident ":" type "=" expression ";"
+ *   type        := "type" ident type_params? ";"
+ *   rec         := "rec" ident type_params? "{" (field ("," field)* ","?)? "}" ";"
+ *   enum        := "enum" ident type_params? "{" (variant ("," variant)* ","?)? "}" ";"
  *
- * Names are `::` qualified and may open with `::` to name the root namespace.
+ * Expressions carry the full operator precedence (`||`, `&&`, `== !=`,
+ * `< <= > >=`, `+ -`, `* / %`, unary `- !`), a path call `f(x)`, a method call
+ * `recv.name(x)`, a field read, an index, a map literal, a vec literal, a
+ * closure, and a `match` term. `( ... )` groups an expression and carries no
+ * node of its own.
+ *
+ * The built-in type names (`txt`, `vec`, `map`, `bool`, `int`) are ordinary
+ * identifiers, not keywords; the reserved words are `mod`, `import`, `use`,
+ * `pub`, `fn`, `let`, `enum`, `type`, `rec`, `match`, `return`, `panic`,
+ * `async`, `wait`, `for`, `in`, `break`, `true`, and `false`.
  *
  * @file Tree-sitter grammar for kiru.
  * @license MIT
  */
 
+// Operator binding powers: a higher number binds tighter. They mirror
+// `precedence` in `src/syntax/parser/expressions.rs`.
+const PREC = {
+  OR: 1,
+  AND: 2,
+  EQUALITY: 3,
+  COMPARISON: 4,
+  ADDITIVE: 5,
+  MULTIPLICATIVE: 6,
+  UNARY: 7,
+  POSTFIX: 8,
+  CALL: 9,
+};
+
+// A comma separated list that may be empty, with an optional trailing comma.
+function commaSep(rule) {
+  return optional(seq(rule, repeat(seq(',', rule)), optional(',')));
+}
+
+// A comma separated list of at least one element, with an optional trailing
+// comma.
+function commaSep1(rule) {
+  return seq(rule, repeat(seq(',', rule)), optional(','));
+}
+
 module.exports = grammar({
   name: 'kiru',
 
   // Reserving the identifier rule lets the lexer treat the language keywords
-  // as whole words, so `switch` never lexes as an identifier prefix.
+  // as whole words, so `true` never lexes as the identifier `tr`.
   word: $ => $.identifier,
 
   extras: $ => [
     $.comment,
-    /[\s\p{Zs}]/,
+    /[\s]/,
   ],
 
   rules: {
-    // A whole source file: an optional module, imports, then declarations.
-    source_file: $ => seq(
-      optional($.module_declaration),
-      repeat($.import_declaration),
-      repeat($._declaration),
+    // A whole source file: its top-level items in any order.
+    source_file: $ => repeat($._item),
+
+    // One top-level item. `import` is global-level only; `use` may be written
+    // at the top level or inside a `mod`.
+    _item: $ => choice(
+      $.import_declaration,
+      $.use_declaration,
+      $.module_declaration,
+      $._declaration,
     ),
 
-    // `module a::b::c;` names the file namespace. The reference grammar
-    // routes it through `path`, so a leading `::` is rejected later by the
-    // compiler rather than by the parser.
+    // `mod a::b { declarations };` declares an inline namespace. A file may
+    // hold several, and reopening a path merges into the same namespace. A
+    // module path is never rooted.
     module_declaration: $ => seq(
-      'module',
-      field('path', $.path),
+      'mod',
+      field('path', alias($._plain_path, $.path)),
+      '{',
+      repeat(choice($._declaration, $.use_declaration)),
+      '}',
       ';',
     ),
 
@@ -65,256 +103,430 @@ module.exports = grammar({
       ';',
     ),
 
-    // A top level declaration. `fn` introduces a function; `txt` and `rec`
-    // bind a value or a record.
-    _declaration: $ => choice(
-      $.function_declaration,
-      $.text_binding,
-      $.record_binding,
+    // `use a::b;` brings the public names of `a::b` into scope;
+    // `use a::b::name;` brings one declaration. A use path is never rooted.
+    use_declaration: $ => seq(
+      'use',
+      field('path', alias($._plain_path, $.path)),
+      ';',
     ),
 
-    // `fn name(txt a, rec b) -> txt { ... };`. An absent return kind means the
-    // function returns no value.
+    // A declaration, optionally marked `pub` so another namespace may reach it.
+    _declaration: $ => seq(
+      optional('pub'),
+      choice(
+        $.function_declaration,
+        $.binding_declaration,
+        $.type_declaration,
+        $.rec_declaration,
+        $.enum_declaration,
+      ),
+    ),
+
+    // `fn name<T>(a: T, b: int) -> Type { ... };`. An absent return type means
+    // the function returns no value.
     function_declaration: $ => seq(
       'fn',
       field('name', $.identifier),
+      optional(field('type_parameters', $.type_parameters)),
       field('parameters', $.parameter_list),
-      optional(seq('->', choice('txt', 'rec'))),
+      optional(seq('->', field('returns', $.type))),
       field('body', $.block),
       ';',
     ),
 
-    // A comma separated parameter list; a trailing comma is allowed.
+    // `let name: Type = value;`, at the top level or as a local binding.
+    binding_declaration: $ => seq(
+      'let',
+      field('name', $.identifier),
+      ':',
+      field('type', $.type),
+      '=',
+      field('value', $._expression),
+      ';',
+    ),
+
+    // `type Name<...>;` declares a built-in type the runtime provides; the
+    // missing body is the marker.
+    type_declaration: $ => seq(
+      'type',
+      field('name', $.identifier),
+      optional(field('type_parameters', $.type_parameters)),
+      ';',
+    ),
+
+    // `rec Name<...> { field: Type, ... };` declares a nominal type.
+    rec_declaration: $ => seq(
+      'rec',
+      field('name', $.identifier),
+      optional(field('type_parameters', $.type_parameters)),
+      '{',
+      commaSep($.field_declaration),
+      '}',
+      ';',
+    ),
+
+    // `enum Name<...> { Variant, Variant(Type, ...), ... };`
+    enum_declaration: $ => seq(
+      'enum',
+      field('name', $.identifier),
+      optional(field('type_parameters', $.type_parameters)),
+      '{',
+      commaSep($.variant_declaration),
+      '}',
+      ';',
+    ),
+
+    // One `name: Type` field of a `rec` declaration.
+    field_declaration: $ => seq(
+      field('name', $.identifier),
+      ':',
+      field('type', $.type),
+    ),
+
+    // One `Name` or `Name(Type, ...)` variant of an `enum`.
+    variant_declaration: $ => seq(
+      field('name', $.identifier),
+      optional(seq('(', commaSep($.type), ')')),
+    ),
+
+    // `<A, B>` type parameters on a declaration or a function.
+    type_parameters: $ => seq(
+      '<',
+      commaSep1($.identifier),
+      '>',
+    ),
+
+    // `(a: T, b: int)`, a function's or closure's parameter list.
     parameter_list: $ => seq(
       '(',
-      optional(seq(
-        $.parameter,
-        repeat(seq(',', $.parameter)),
-        optional(','),
-      )),
+      commaSep($.parameter),
       ')',
     ),
 
-    // A parameter writes its kind before its name. A parameter and a
-    // function's return type are the two places a kind is written.
+    // One parameter: its name, then its type after a colon.
     parameter: $ => seq(
-      field('kind', choice('txt', 'rec')),
+      field('name', $.identifier),
+      ':',
+      field('type', $.type),
+    ),
+
+    // A written type: a function type, or a name applied to type arguments.
+    type: $ => choice(
+      $.function_type,
+      $.named_type,
+    ),
+
+    // `fn(T1, T2)` returns nothing; `fn(T1, T2) -> R` returns a value.
+    function_type: $ => seq(
+      'fn',
+      '(',
+      commaSep($.type),
+      ')',
+      optional(seq('->', field('returns', $.type))),
+    ),
+
+    // `txt`, `vec<T>`, `map<K, V>`, `Name<A, B>`, or `::a::Name`.
+    named_type: $ => seq(
+      field('path', $.path),
+      optional(field('type_arguments', $.type_arguments)),
+    ),
+
+    // `<T, U>` type arguments applied to a named type.
+    type_arguments: $ => seq(
+      '<',
+      commaSep1($.type),
+      '>',
+    ),
+
+    // A `::` qualified path, optionally rooted with a leading `::`. Every
+    // segment but the last names a namespace; the last names the declaration.
+    // The precedence lets an `identifier` reduce to a path rather than shift
+    // `=` as a map field, so a `{ ... }` arm body reads as a block.
+    path: $ => prec(1, seq(
+      optional('::'),
+      repeat(seq($.identifier, '::')),
+      field('name', $.identifier),
+    )),
+
+    // A `mod` or `use` path: a `::` qualified name that is never rooted.
+    _plain_path: $ => seq(
+      repeat(seq($.identifier, '::')),
       field('name', $.identifier),
     ),
 
-    // `txt name = expression;` at the top level or as a local binding.
-    text_binding: $ => seq(
-      'txt',
-      field('name', $.identifier),
-      '=',
-      field('value', $.expression),
-      ';',
-    ),
-
-    // `rec name = expression;` at the top level or as a local binding. The
-    // expression is a record literal, a record variable, or a call returning
-    // a record, so it uses the general expression rule.
-    record_binding: $ => seq(
-      'rec',
-      field('name', $.identifier),
-      '=',
-      field('value', $.expression),
-      ';',
-    ),
-
-    // `{ statement* }`, used as a function body and as the body of `switch`
-    // arms and `defer`. A block is always followed by the statement
-    // semicolon at its use site.
-    block: $ => seq(
+    // `{ statement* }`, a function body, a match arm body, or a loop body. An
+    // empty `{}` is always a block, never an empty map literal: the precedence
+    // picks the block when the two could otherwise collide.
+    block: $ => prec(1, seq(
       '{',
       repeat($._statement),
       '}',
-    ),
+    )),
 
     // A statement inside a block.
     _statement: $ => choice(
-      $.text_binding,
-      $.record_binding,
+      $.binding_declaration,
       $.assignment_statement,
       $.return_statement,
       $.panic_statement,
       $.async_statement,
       $.wait_statement,
-      $.switch_statement,
-      $.defer_statement,
+      $.for_statement,
+      $.break_statement,
       $.expression_statement,
     ),
 
-    // `name = expression;` redefines a local binding.
+    // `name = expression;`, `name.field = expression;`, or
+    // `name[index] = expression;` — one assignment shape whose target is the
+    // expression on the left. The parser reads the left side as an expression
+    // and then sees `=`, so a field access and a method call share the
+    // `identifier` reduction with the assignment target; the checker restricts
+    // the target to a bare name, a field, or an index.
     assignment_statement: $ => seq(
-      field('name', $.identifier),
+      field('target', $._expression),
       '=',
-      field('value', $.expression),
+      field('value', $._expression),
       ';',
     ),
 
-    // `return();` ends a `nothing` function, `return(expression);` returns a
-    // value. Both forms are parenthesized.
+    // `return;` ends a function with no return type; `return expr;` returns a
+    // value.
     return_statement: $ => seq(
       'return',
-      '(',
-      optional(field('value', $.expression)),
-      ')',
+      optional(field('value', $._expression)),
       ';',
     ),
 
-    // `panic;` ends the run.
-    panic_statement: $ => seq(
-      'panic',
-      ';',
-    ),
+    // `panic;` exits the program with an error.
+    panic_statement: $ => seq('panic', ';'),
 
-    // `async expression;` spawns the call on its own thread. The checker
-    // requires the expression to be a call.
+    // `async <call>;` starts a call on its own thread.
     async_statement: $ => seq(
       'async',
-      field('call', $.expression),
+      field('call', $._expression),
       ';',
     ),
 
     // `wait;` joins the asyncs the calling thread spawned.
-    wait_statement: $ => seq(
-      'wait',
-      ';',
-    ),
+    wait_statement: $ => seq('wait', ';'),
 
-    // `defer { ... };` registers a body to run when the enclosing body ends.
-    defer_statement: $ => seq(
-      'defer',
+    // `for item in <vec> { ... };` runs once per element; `for { ... };`
+    // repeats until a `break`.
+    for_statement: $ => seq(
+      'for',
+      optional(seq(
+        field('item', $.identifier),
+        'in',
+        field('iterable', $._expression),
+      )),
       field('body', $.block),
       ';',
     ),
 
-    // `switch(subject) { case(...) { ... }; default { ... }; };`
-    switch_statement: $ => seq(
-      'switch',
-      '(',
-      field('subject', $.expression),
-      ')',
-      '{',
-      repeat(choice($.case_clause, $.default_clause)),
-      '}',
-      ';',
-    ),
+    // `break;` ends the nearest enclosing loop.
+    break_statement: $ => seq('break', ';'),
 
-    // `case(pattern) { ... };`
-    case_clause: $ => seq(
-      'case',
-      '(',
-      field('pattern', $.expression),
-      ')',
-      field('body', $.block),
-      ';',
-    ),
-
-    // `default { ... };`
-    default_clause: $ => seq(
-      'default',
-      field('body', $.block),
-      ';',
-    ),
-
-    // A bare expression used as a statement, always closed with `;`.
+    // A bare expression used as a statement: always a call or a match.
     expression_statement: $ => seq(
-      $.expression,
+      $._expression,
       ';',
     ),
 
-    // Sums of terms; `+` is left associative and concatenates text.
-    expression: $ => choice(
+    // An expression, by precedence. `_expression` is hidden; each operator
+    // level is a named `binary_expression`.
+    _expression: $ => choice(
       $.binary_expression,
-      $._term,
+      $._unary,
     ),
 
-    binary_expression: $ => prec.left(1, seq(
-      field('left', $.expression),
-      field('operator', '+'),
-      field('right', $.expression),
+    binary_expression: $ => choice(
+      prec.left(PREC.OR, seq(
+        field('left', $._expression),
+        field('operator', '||'),
+        field('right', $._expression),
+      )),
+      prec.left(PREC.AND, seq(
+        field('left', $._expression),
+        field('operator', '&&'),
+        field('right', $._expression),
+      )),
+      prec.left(PREC.EQUALITY, seq(
+        field('left', $._expression),
+        field('operator', choice('==', '!=')),
+        field('right', $._expression),
+      )),
+      prec.left(PREC.COMPARISON, seq(
+        field('left', $._expression),
+        field('operator', choice('<', '<=', '>', '>=')),
+        field('right', $._expression),
+      )),
+      prec.left(PREC.ADDITIVE, seq(
+        field('left', $._expression),
+        field('operator', choice('+', '-')),
+        field('right', $._expression),
+      )),
+      prec.left(PREC.MULTIPLICATIVE, seq(
+        field('left', $._expression),
+        field('operator', choice('*', '/', '%')),
+        field('right', $._expression),
+      )),
+    ),
+
+    _unary: $ => choice(
+      $.unary_expression,
+      $._postfix,
+    ),
+
+    // `-x` or `!x`, applied to another unary or a postfix expression.
+    unary_expression: $ => prec(PREC.UNARY, seq(
+      field('operator', choice('-', '!')),
+      field('operand', $._unary),
     )),
 
-    // A primary with any number of field accesses.
-    _term: $ => choice(
-      $.call_expression,
+    _postfix: $ => choice(
+      $.method_call,
       $.field_access,
-      $.string,
-      $.record_literal,
-      $.path,
+      $.index_expression,
+      $._primary,
     ),
 
-    // `path(arguments)` calls a function.
-    call_expression: $ => prec(2, seq(
-      field('callee', $.path),
-      field('arguments', $.argument_list),
+    // `receiver.name(arguments)`: a method call.
+    method_call: $ => prec.left(PREC.POSTFIX, seq(
+      field('receiver', $._postfix),
+      '.',
+      field('method', $.identifier),
+      field('arguments', $.arguments),
     )),
 
-    // `target.field` reads a record field.
-    field_access: $ => prec.left(3, seq(
-      field('target', $._term),
+    // `target.field`: a field read.
+    field_access: $ => prec.left(PREC.POSTFIX, seq(
+      field('target', $._postfix),
       '.',
       field('field', $.identifier),
     )),
 
-    // A comma separated argument list; a trailing comma is allowed.
-    argument_list: $ => seq(
+    // `target[index]`: the element of a vec at an index.
+    index_expression: $ => prec.left(PREC.POSTFIX, seq(
+      field('target', $._postfix),
+      '[',
+      field('index', $._expression),
+      ']',
+    )),
+
+    // A primary expression. A `( ... )` grouping carries no node: the parens
+    // only steer precedence, which the tree already records.
+    _primary: $ => choice(
+      $.string,
+      $.number,
+      $.boolean,
+      $.map_literal,
+      $.vec_literal,
+      seq('(', $._expression, ')'),
+      $.closure,
+      $.match_expression,
+      $.call_expression,
+      $.path,
+    ),
+
+    // `path(arguments)` calls a function by path.
+    call_expression: $ => prec(PREC.CALL, seq(
+      field('callee', $.path),
+      field('arguments', $.arguments),
+    )),
+
+    // `(expression, ...)`, a call's or method's argument list.
+    arguments: $ => seq(
       '(',
-      optional(seq(
-        $.expression,
-        repeat(seq(',', $.expression)),
-        optional(','),
-      )),
+      commaSep($._expression),
       ')',
     ),
 
-    // `{ key = expression, ... }`; fields are text, so a record does not
-    // nest and a duplicate key is resolved by the compiler.
-    record_literal: $ => seq(
+    // `{ key = expression, ... }`, an anonymous map or record literal.
+    map_literal: $ => seq(
       '{',
-      optional(seq(
-        $.record_field,
-        repeat(seq(',', $.record_field)),
-        optional(','),
-      )),
+      commaSep($.map_field),
       '}',
     ),
 
-    // One `key = expression` field of a record literal.
-    record_field: $ => seq(
+    // One `key = expression` field of a map literal.
+    map_field: $ => seq(
       field('name', $.identifier),
       '=',
-      field('value', $.expression),
+      field('value', $._expression),
     ),
 
-    // A `::` qualified name with an optional leading `::`. Every segment but
-    // the last is a namespace; the last segment names the value or function.
-    path: $ => seq(
-      optional($.root_namespace),
-      repeat(seq($.namespace, '::')),
-      field('name', $.identifier),
+    // `[expression, ...]`, a vec literal.
+    vec_literal: $ => seq(
+      '[',
+      commaSep($._expression),
+      ']',
     ),
 
-    // The leading `::` that roots a path at the root namespace.
-    root_namespace: $ => '::',
+    // `fn(a: T) -> R { ... }`, a closure value in expression position.
+    closure: $ => seq(
+      'fn',
+      field('parameters', $.parameter_list),
+      optional(seq('->', field('returns', $.type))),
+      field('body', $.block),
+    ),
 
-    // A non final segment of a qualified path.
-    namespace: $ => $.identifier,
+    // `match subject { pattern => body; ... }`, a term. A pattern is an
+    // expression; an arm body is an expression or a block.
+    match_expression: $ => seq(
+      'match',
+      field('subject', $._expression),
+      '{',
+      repeat($.match_arm),
+      '}',
+    ),
 
-    identifier: _ => /[a-zA-Z_][a-zA-Z0-9_]*/,
+    // One `pattern => body;` arm. The pattern is a literal, a name, a field
+    // path, or a variant pattern `Name.Variant` / `Name.Variant(bind, ...)`.
+    match_arm: $ => seq(
+      field('pattern', $._expression),
+      '=>',
+      field('body', choice($.block, $._expression)),
+      ';',
+    ),
 
-    // A double quoted string. A newline is an ordinary character, so strings
-    // span lines; only the five spec escapes are recognized.
-    string: _ => token(seq(
+    // A `true` or `false` literal.
+    boolean: _ => choice('true', 'false'),
+
+    // An integer literal. The sign is a separate unary operator.
+    number: _ => /\d+/,
+
+    // A name. The lexer accepts any Unicode alphabetic start and any Unicode
+    // alphanumeric continuation, so the grammar does too.
+    identifier: _ => /[_\p{L}][_\p{L}\p{N}]*/,
+
+    // A double quoted string: literal text, the six escapes, and `@(expr)`
+    // interpolation. A string may span lines.
+    string: $ => seq(
       '"',
       repeat(choice(
-        /[^"\\]/,
-        /\\(?:n|t|r|\\|")/,
+        $.interpolation,
+        $.escape_sequence,
+        $._string_text,
+        '@',
       )),
       '"',
-    )),
+    ),
+
+    // `@(expression)`, an interpolation inside a string.
+    interpolation: $ => seq(
+      '@(',
+      field('value', $._expression),
+      ')',
+    ),
+
+    // `\n`, `\t`, `\r`, `\e`, `\\`, `\"`, or `\@`.
+    escape_sequence: _ => token.immediate(/\\(?:n|t|r|e|\\|"|@)/),
+
+    // A run of literal string text: everything but a quote, a backslash, or an
+    // interpolation opener. `token.immediate` keeps the surrounding whitespace
+    // from being skipped as an extra.
+    _string_text: _ => token.immediate(/[^"\\@]+/),
 
     // A `#` comment running to the end of the line.
     comment: _ => token(seq('#', /[^\n]*/)),

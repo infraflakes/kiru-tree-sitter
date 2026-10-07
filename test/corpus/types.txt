@@ -1,0 +1,464 @@
+==================
+parameter and return type annotations
+==================
+
+fn shell(dir: Option<txt>, env: Option<txt>, timeout: Option<int>, stdin: Option<txt>, stdout: Option<txt>, stderr: Option<txt>, line: txt) -> int {
+  return 0;
+};
+
+fn is_flag(word: txt) -> bool {
+  return word.starts_with("-");
+};
+
+fn probe(service: Service, spool: txt) {
+  std::fs::write(spool, service.name);
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (return_statement
+        (number))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (return_statement
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments
+            (string))))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier)
+            (identifier))
+          (arguments
+            (path
+              (identifier))
+            (field_access
+              (path
+                (identifier))
+              (identifier))))))))
+
+==================
+function types in fields, parameters, and bindings
+==================
+
+pub rec Command {
+  action: fn(Context) -> int,
+};
+
+fn apply(handler: fn(txt) -> bool, value: txt) -> bool {
+  return handler(value);
+};
+
+fn sort_by<T>(self: vec<T>, less: fn(T, T) -> bool) -> vec<T> {
+  return self;
+};
+
+let handler: fn(Context) -> int = current.action;
+
+---
+
+(source_file
+  (rec_declaration
+    (identifier)
+    (field_declaration
+      (identifier)
+      (type
+        (function_type
+          (type
+            (named_type
+              (path
+                (identifier))))
+          (type
+            (named_type
+              (path
+                (identifier))))))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (function_type
+            (type
+              (named_type
+                (path
+                  (identifier))))
+            (type
+              (named_type
+                (path
+                  (identifier)))))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (return_statement
+        (call_expression
+          (path
+            (identifier))
+          (arguments
+            (path
+              (identifier)))))))
+  (function_declaration
+    (identifier)
+    (type_parameters
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (function_type
+            (type
+              (named_type
+                (path
+                  (identifier))))
+            (type
+              (named_type
+                (path
+                  (identifier))))
+            (type
+              (named_type
+                (path
+                  (identifier))))))))
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (block
+      (return_statement
+        (path
+          (identifier)))))
+  (binding_declaration
+    (identifier)
+    (type
+      (function_type
+        (type
+          (named_type
+            (path
+              (identifier))))
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (field_access
+      (path
+        (identifier))
+      (identifier))))
+
+==================
+qualified, generic, and nested type paths
+==================
+
+fn flag_of(context: std::cli::Context) -> txt {
+  let words: vec<txt> = context.args();
+  return "";
+};
+
+let root: std::cli::Command = std::cli::command("kiru");
+
+let reports: vec<Report> = [];
+
+let map_value: map<txt, txt> = { name = "one" };
+
+fn map<T, U>(self: vec<T>, apply: fn(T) -> U) -> vec<U> {
+  return [];
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)
+              (identifier)
+              (identifier))))))
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (block
+      (binding_declaration
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))
+        (method_call
+          (path
+            (identifier))
+          (identifier)
+          (arguments)))
+      (return_statement
+        (string))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier)
+          (identifier)
+          (identifier))))
+    (call_expression
+      (path
+        (identifier)
+        (identifier)
+        (identifier))
+      (arguments
+        (string))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (vec_literal))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier))))
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (map_literal
+      (map_field
+        (identifier)
+        (string))))
+  (function_declaration
+    (identifier)
+    (type_parameters
+      (identifier)
+      (identifier))
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))))))
+      (parameter
+        (identifier)
+        (type
+          (function_type
+            (type
+              (named_type
+                (path
+                  (identifier))))
+            (type
+              (named_type
+                (path
+                  (identifier))))))))
+    (type
+      (named_type
+        (path
+          (identifier))
+        (type_arguments
+          (type
+            (named_type
+              (path
+                (identifier)))))))
+    (block
+      (return_statement
+        (vec_literal)))))
+
+==================
+a rooted type path and type arguments with several arguments
+==================
+
+fn take(value: ::root::Value, pair: Pair<int, txt>) {
+  return;
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier)
+              (identifier)))))
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))
+            (type_arguments
+              (type
+                (named_type
+                  (path
+                    (identifier))))
+              (type
+                (named_type
+                  (path
+                    (identifier)))))))))
+    (block
+      (return_statement))))

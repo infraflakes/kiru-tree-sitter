@@ -1,39 +1,280 @@
 ==================
-text and record declarations
+built-in, record, enum, and value declarations
 ==================
 
-txt greeting = "hello" + " world";
+pub type vec<T>;
 
-rec project = {
+pub type bool;
+
+pub rec Flag {
+  name: txt,
+  short: txt,
+  help: txt,
+  takes: bool,
+  fallback: txt,
+};
+
+pub rec Command {
+  name: txt,
+  about: txt,
+  flags: vec<Flag>,
+  children: vec<Command>,
+  action: fn(Context) -> int,
+};
+
+pub enum Option<T> { some(T), none };
+
+pub enum Health {
+  ok(txt),
+  slow(txt),
+  down(txt),
+};
+
+let kiru: Project = {
   name = "kiru",
-  dir = ".",
-  direnv = "true",
+  Dir = ".",
+  Nix = true,
+};
+
+pub let usage: txt = "usage: kiru <flag>";
+
+---
+
+(source_file
+  (type_declaration
+    (identifier)
+    (type_parameters
+      (identifier)))
+  (type_declaration
+    (identifier))
+  (rec_declaration
+    (identifier)
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier))))))
+  (rec_declaration
+    (identifier)
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier))
+          (type_arguments
+            (type
+              (named_type
+                (path
+                  (identifier))))))))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier))
+          (type_arguments
+            (type
+              (named_type
+                (path
+                  (identifier))))))))
+    (field_declaration
+      (identifier)
+      (type
+        (function_type
+          (type
+            (named_type
+              (path
+                (identifier))))
+          (type
+            (named_type
+              (path
+                (identifier))))))))
+  (enum_declaration
+    (identifier)
+    (type_parameters
+      (identifier))
+    (variant_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (variant_declaration
+      (identifier)))
+  (enum_declaration
+    (identifier)
+    (variant_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (variant_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (variant_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier))))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (map_literal
+      (map_field
+        (identifier)
+        (string))
+      (map_field
+        (identifier)
+        (string))
+      (map_field
+        (identifier)
+        (boolean))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string)))
+
+==================
+a generic record with two type parameters
+==================
+
+rec Pair<A, B> {
+  first: A,
+  second: B,
 };
 
 ---
 
 (source_file
-  (text_binding
+  (rec_declaration
     (identifier)
-    (expression
-      (binary_expression
-        (expression
-          (string))
-        (expression
-          (string)))))
-  (record_binding
+    (type_parameters
+      (identifier)
+      (identifier))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))
+    (field_declaration
+      (identifier)
+      (type
+        (named_type
+          (path
+            (identifier)))))))
+
+==================
+an enum with a trailing comma and a record with no fields
+==================
+
+enum Color { red, green, blue, };
+
+rec Unit {};
+
+---
+
+(source_file
+  (enum_declaration
     (identifier)
-    (expression
-      (record_literal
-        (record_field
-          (identifier)
-          (expression
-            (string)))
-        (record_field
-          (identifier)
-          (expression
-            (string)))
-        (record_field
-          (identifier)
-          (expression
-            (string)))))))
+    (variant_declaration
+      (identifier))
+    (variant_declaration
+      (identifier))
+    (variant_declaration
+      (identifier)))
+  (rec_declaration
+    (identifier)))
+
+==================
+pub declarations in every shape
+==================
+
+pub fn print(message: txt) {
+  std::io::write(1, "@(message)\n");
+};
+
+pub let greeting: txt = "hello";
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)
+        (type
+          (named_type
+            (path
+              (identifier))))))
+    (block
+      (expression_statement
+        (call_expression
+          (path
+            (identifier)
+            (identifier)
+            (identifier))
+          (arguments
+            (number)
+            (string
+              (interpolation
+                (path
+                  (identifier)))
+              (escape_sequence)))))))
+  (binding_declaration
+    (identifier)
+    (type
+      (named_type
+        (path
+          (identifier))))
+    (string)))
