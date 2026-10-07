@@ -10,18 +10,21 @@
  * The rule shapes mirror the reference grammar:
  *
  *   file        := module? import* declaration*
- *   declaration := function | text | record
+ *   declaration := function | text | record | list
  *   function    := "fn" ident "(" params? ")" ("->" kind)? block ";"
- *   statement   := text | record | assignment | expression ";"
+ *   statement   := text | record | list | assignment | field_assignment
+ *                | expression ";"
  *                | "return" "(" expression? ")" ";"
  *                | "panic" ";"
  *                | "async" expression ";"
  *                | "wait" ";"
  *                | "switch" "(" expression ")" switch ";"
- *                | "defer" block ";"
+ *                | "for" (ident "in" expression)? block ";"
+ *                | "break" ";"
+ *                | "continue" ";"
  *   expression  := term ("+" term)*
  *   term        := primary ("." ident)*
- *   primary     := string | fields | path arguments? | path
+ *   primary     := string | fields | list_literal | path arguments? | path
  *
  * Names are `::` qualified and may open with `::` to name the root namespace.
  *
@@ -65,12 +68,13 @@ module.exports = grammar({
       ';',
     ),
 
-    // A top level declaration. `fn` introduces a function; `txt` and `rec`
-    // bind a value or a record.
+    // A top level declaration. `fn` introduces a function; `txt`, `rec`, and
+    // `list` bind a value, a record, or a list.
     _declaration: $ => choice(
       $.function_declaration,
       $.text_binding,
       $.record_binding,
+      $.list_binding,
     ),
 
     // `fn name(txt a, rec b) -> txt { ... };`. An absent return kind means the
@@ -79,7 +83,7 @@ module.exports = grammar({
       'fn',
       field('name', $.identifier),
       field('parameters', $.parameter_list),
-      optional(seq('->', choice('txt', 'rec'))),
+      optional(seq('->', choice('txt', 'rec', 'list'))),
       field('body', $.block),
       ';',
     ),
@@ -95,15 +99,18 @@ module.exports = grammar({
       ')',
     ),
 
-    // A parameter writes its kind before its name. A parameter and a
-    // function's return type are the two places a kind is written.
+    // A parameter writes an optional `mut`, its kind, then its name. A
+    // parameter and a function's return type are the two places a kind is
+    // written.
     parameter: $ => seq(
-      field('kind', choice('txt', 'rec')),
+      optional('mut'),
+      field('kind', choice('txt', 'rec', 'list')),
       field('name', $.identifier),
     ),
 
-    // `txt name = expression;` at the top level or as a local binding.
+    // `[mut] txt name = expression;` at the top level or as a local binding.
     text_binding: $ => seq(
+      optional('mut'),
       'txt',
       field('name', $.identifier),
       '=',
@@ -111,10 +118,11 @@ module.exports = grammar({
       ';',
     ),
 
-    // `rec name = expression;` at the top level or as a local binding. The
-    // expression is a record literal, a record variable, or a call returning
-    // a record, so it uses the general expression rule.
+    // `[mut] rec name = expression;` at the top level or as a local binding.
+    // The expression is a record literal, a record variable, or a call
+    // returning a record, so it uses the general expression rule.
     record_binding: $ => seq(
+      optional('mut'),
       'rec',
       field('name', $.identifier),
       '=',
@@ -122,9 +130,21 @@ module.exports = grammar({
       ';',
     ),
 
+    // `[mut] list name = expression;` at the top level or as a local binding.
+    // The expression is a list literal, a list variable, or a call returning a
+    // list, so it uses the general expression rule.
+    list_binding: $ => seq(
+      optional('mut'),
+      'list',
+      field('name', $.identifier),
+      '=',
+      field('value', $.expression),
+      ';',
+    ),
+
     // `{ statement* }`, used as a function body and as the body of `switch`
-    // arms and `defer`. A block is always followed by the statement
-    // semicolon at its use site.
+    // arms and `for`. A block is always followed by the statement semicolon at
+    // its use site.
     block: $ => seq(
       '{',
       repeat($._statement),
@@ -135,23 +155,39 @@ module.exports = grammar({
     _statement: $ => choice(
       $.text_binding,
       $.record_binding,
+      $.list_binding,
       $.assignment_statement,
+      $.field_assignment_statement,
       $.return_statement,
       $.panic_statement,
       $.async_statement,
       $.wait_statement,
       $.switch_statement,
-      $.defer_statement,
+      $.for_statement,
+      $.break_statement,
+      $.continue_statement,
       $.expression_statement,
     ),
 
-    // `name = expression;` redefines a local binding.
+    // `name = expression;` redefines a mutable local binding.
     assignment_statement: $ => seq(
       field('name', $.identifier),
       '=',
       field('value', $.expression),
       ';',
     ),
+
+    // `name.field = expression;` assigns one field of a mutable record. A
+    // higher precedence than the expression statement lets the `=` choose this
+    // rule over a field-access expression.
+    field_assignment_statement: $ => prec(1, seq(
+      field('name', $.identifier),
+      '.',
+      field('field', $.identifier),
+      '=',
+      field('value', $.expression),
+      ';',
+    )),
 
     // `return();` ends a `nothing` function, `return(expression);` returns a
     // value. Both forms are parenthesized.
@@ -183,10 +219,28 @@ module.exports = grammar({
       ';',
     ),
 
-    // `defer { ... };` registers a body to run when the enclosing body ends.
-    defer_statement: $ => seq(
-      'defer',
+    // `for item in <list> { ... };` runs the body once per element, and
+    // `for { ... };` repeats until a `break`. The header is optional.
+    for_statement: $ => seq(
+      'for',
+      optional(seq(
+        field('item', $.identifier),
+        'in',
+        field('iterable', $.expression),
+      )),
       field('body', $.block),
+      ';',
+    ),
+
+    // `break;` ends the nearest enclosing loop.
+    break_statement: $ => seq(
+      'break',
+      ';',
+    ),
+
+    // `continue;` starts the nearest enclosing loop's next iteration.
+    continue_statement: $ => seq(
+      'continue',
       ';',
     ),
 
@@ -243,6 +297,7 @@ module.exports = grammar({
       $.field_access,
       $.string,
       $.record_literal,
+      $.list_literal,
       $.path,
     ),
 
@@ -289,6 +344,17 @@ module.exports = grammar({
       field('value', $.expression),
     ),
 
+    // `[expression, ...]`; every element is text, so a list does not nest.
+    list_literal: $ => seq(
+      '[',
+      optional(seq(
+        $.expression,
+        repeat(seq(',', $.expression)),
+        optional(','),
+      )),
+      ']',
+    ),
+
     // A `::` qualified name with an optional leading `::`. Every segment but
     // the last is a namespace; the last segment names the value or function.
     path: $ => seq(
@@ -306,12 +372,12 @@ module.exports = grammar({
     identifier: _ => /[a-zA-Z_][a-zA-Z0-9_]*/,
 
     // A double quoted string. A newline is an ordinary character, so strings
-    // span lines; only the five spec escapes are recognized.
+    // span lines; only the six spec escapes are recognized.
     string: _ => token(seq(
       '"',
       repeat(choice(
         /[^"\\]/,
-        /\\(?:n|t|r|\\|")/,
+        /\\(?:n|t|r|e|\\|")/,
       )),
       '"',
     )),

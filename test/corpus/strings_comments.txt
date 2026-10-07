@@ -4,7 +4,7 @@ strings and comments
 
 # a leading comment
 txt banner = "line one
-line two\twith escape \"quoted\""; # trailing comment
+line two\twith escape \"quoted\" and \e[0m"; # trailing comment
 
 ---
 

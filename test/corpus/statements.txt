@@ -13,9 +13,6 @@ fn work(rec project) {
   async work();
   wait;
   std::command({ Env = "KIRU_MESSAGE=" + log }, "echo hi");
-  defer {
-    std::command({ Stream = "null" }, "rm -rf " + log);
-  };
   panic;
 };
 
@@ -77,27 +74,4 @@ fn work(rec project) {
                             (identifier))))))))
               (expression
                 (string))))))
-      (defer_statement
-        (block
-          (expression_statement
-            (expression
-              (call_expression
-                (path
-                  (namespace
-                    (identifier))
-                  (identifier))
-                (argument_list
-                  (expression
-                    (record_literal
-                      (record_field
-                        (identifier)
-                        (expression
-                          (string)))))
-                  (expression
-                    (binary_expression
-                      (expression
-                        (string))
-                      (expression
-                        (path
-                          (identifier)))))))))))
       (panic_statement))))

@@ -5,8 +5,8 @@
 ; changes color between its declaration, its uses and its call sites, and a
 ; namespace is colored like any other name. Color is spent only on what a
 ; reader scans a file for: comments, strings, the keywords that shape a run,
-; the two value kinds, and the names you can call. Every other name, whether a
-; value, a parameter, a field, a record key or a namespace, shares one color.
+; the three value kinds, and the names you can call. Every other name, whether
+; a value, a parameter, a field, a record key or a namespace, shares one color.
 ;
 ; The captures are the standard Neovim names, so any colorscheme that supports
 ; Tree-sitter highlighting works without extra groups. Neovim applies patterns
@@ -21,22 +21,28 @@
 [
   "module"
   "import"
+  "mut"
   "switch"
   "case"
   "default"
-  "defer"
   "return"
   "panic"
   "async"
   "wait"
+  "for"
+  "in"
+  "break"
+  "continue"
 ] @keyword
 
-; `fn` introduces a function; `txt` and `rec` are the two value kinds.
+; `fn` introduces a function; `txt`, `rec`, and `list` are the three value
+; kinds.
 "fn" @keyword.function
 
 [
   "txt"
   "rec"
+  "list"
 ] @type
 
 ; Every name is a value until a pattern below says it is callable, so a name
@@ -67,6 +73,8 @@
   ")"
   "{"
   "}"
+  "["
+  "]"
 ] @punctuation.bracket
 
 [

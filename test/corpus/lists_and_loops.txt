@@ -1,0 +1,82 @@
+==================
+lists and loops
+==================
+
+list roots = ["a", "b"];
+
+fn gather(list xs) -> list {
+  mut list out = [];
+  for x in xs {
+    switch(x) {
+      case("skip") { continue; };
+      default { out = std::lists::append(out, x); };
+    };
+    for {
+      break;
+    };
+  };
+  return(out);
+};
+
+---
+
+(source_file
+  (list_binding
+    (identifier)
+    (expression
+      (list_literal
+        (expression
+          (string))
+        (expression
+          (string)))))
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)))
+    (block
+      (list_binding
+        (identifier)
+        (expression
+          (list_literal)))
+      (for_statement
+        (identifier)
+        (expression
+          (path
+            (identifier)))
+        (block
+          (switch_statement
+            (expression
+              (path
+                (identifier)))
+            (case_clause
+              (expression
+                (string))
+              (block
+                (continue_statement)))
+            (default_clause
+              (block
+                (assignment_statement
+                  (identifier)
+                  (expression
+                    (call_expression
+                      (path
+                        (namespace
+                          (identifier))
+                        (namespace
+                          (identifier))
+                        (identifier))
+                      (argument_list
+                        (expression
+                          (path
+                            (identifier)))
+                        (expression
+                          (path
+                            (identifier))))))))))
+          (for_statement
+            (block
+              (break_statement)))))
+      (return_statement
+        (expression
+          (path
+            (identifier)))))))

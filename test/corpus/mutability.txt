@@ -1,0 +1,32 @@
+==================
+mutable bindings and field assignment
+==================
+
+fn f(mut rec spec) {
+  mut txt name = "a";
+  spec.Dir = "b";
+  name = "c";
+};
+
+---
+
+(source_file
+  (function_declaration
+    (identifier)
+    (parameter_list
+      (parameter
+        (identifier)))
+    (block
+      (text_binding
+        (identifier)
+        (expression
+          (string)))
+      (field_assignment_statement
+        (identifier)
+        (identifier)
+        (expression
+          (string)))
+      (assignment_statement
+        (identifier)
+        (expression
+          (string))))))
